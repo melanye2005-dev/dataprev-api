@@ -18,10 +18,12 @@ async def login():
 
         page = await context.new_page()
 
-        await page.goto("https://iam.gerid.dataprev.gov.br")
+        await page.goto("https://iam.gerid.dataprev.gov.br/cas/login")
+
+        print("Página de login carregada")
 
         # clicar no botão de certificado
-        await page.get_by_text("Entrar com certificado").click()
+        await page.get_by_text("Entrar com Certificado Digital").click()
 
         # esperar o redirecionamento para o portal
         await page.wait_for_url("https://ecoportal.dataprev.gov.br/**")
@@ -30,4 +32,9 @@ async def login():
 
         await page.wait_for_timeout(7000)
 
+        print("url atual: ", page.url)
+
         await browser.close()
+
+        
+

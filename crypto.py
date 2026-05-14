@@ -1,7 +1,7 @@
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.hazmat.primitives import serialization
 
-with open("certificado.pfx", "rb") as f:
+with open("cert.pfx", "rb") as f:
     pfx_data = f.read()
 
 private_key, certificate, additional_certificates = pkcs12.load_key_and_certificates(

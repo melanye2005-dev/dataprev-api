@@ -1,40 +1,60 @@
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 
-async def login():
+class DataprevBrowser:
 
-    async with async_playwright() as p:
+    def __init__(self):
+        self.p = sync_playwright().start()
 
-        browser = await p.chromium.launch(headless=False)
-
-        context = await browser.new_context(
-            client_certificates=[
-                {
-                    "origin": "https://iam.gerid.dataprev.gov.br",
-                    "certPath": "cert/cert.pem",
-                    "keyPath": "cert/key.pem"
-                }
-            ]
+        self.browser = self.p.chromium.launch(
+            headless=False,
+            channel="chrome"
         )
 
-        page = await context.new_page()
+        self.context = self.browser.new_context(
+            client_certificates=[{
+                "origin": "https://iam.gerid.dataprev.gov.br",
+                "certPath": "cert/cert.pem",
+                "keyPath": "cert/key.pem"
+            }]
+        )
 
-        await page.goto("https://iam.gerid.dataprev.gov.br/cas/login")
+        self.page = self.context.new_page()
 
-        print("Página de login carregada")
+        self._login()
 
-        # clicar no botão de certificado
-        await page.get_by_text("Entrar com Certificado Digital").click()
+    def _login(self):
 
-        # esperar o redirecionamento para o portal
-        await page.wait_for_url("https://ecoportal.dataprev.gov.br/**")
+        self.page.goto("https://iam.gerid.dataprev.gov.br/cas/login")
 
-        print("Login realizado")
+        self.page.get_by_text("Entrar com Certificado Digital").click()
 
-        await page.wait_for_timeout(7000)
+        self.page.wait_for_load_state("networkidle")
 
-        print("url atual: ", page.url)
+        self.page.goto("https://ecoportal.dataprev.gov.br/emprestimos/consultar-emprestimos")
 
-        await browser.close()
+        self.page.get_by_role("button", name="Acessar o Portal do e-Consignado").click()
 
-        
+        self.page.wait_for_load_state("networkidle")
 
+        self.page.get_by_role("link", name="Consultar Empréstimo").click()
+
+
+    def consultar(self, contrato: str):
+
+        self.page.get_by_role("textbox", name="Número Contrato*").fill(str(contrato))
+
+        with self.page.expect_response(
+            lambda r: "consultar-emprestimo" in r.url
+        ) as resp:
+
+            self.page.get_by_role("button", name="Consultar").click()
+
+        response = resp.value
+
+        return response.json()
+
+
+    def close(self):
+
+        self.browser.close()
+        self.p.stop()
